@@ -4,7 +4,7 @@ const zod=require('zod')
 const User = require("../models/User")
 const jwt= require("jsonwebtoken")
 const { JWT_SECRET } = require("../config")
-const { appendFile } = require("fs")
+
 
 const userSignupSchema=zod.object({
     username:zod.string(),
