@@ -6,6 +6,8 @@ import {PORT} from"./config/env.js"
 
 import connectToDatabase from "./database/mongodb.js";
 import companyRouter from "./routes/company.routes.js";
+import authRouter from "./routes/auth.routes.js";
+import userRouter from "./routes/user.routes.js";
 
 const app=express();
 

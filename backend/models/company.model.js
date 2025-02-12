@@ -11,11 +11,17 @@ const companySchema= new mongoose.Schema({
     email : {
         type:String,
         required:[true,"Company's Email is requied"],
+        unique:true,
         lowercase:true
     },
     website : {
         type:String,
         required:[true,"Website link is required"]
+    },
+    password:{
+        type:String,
+        minLength:6,
+        required:true
     },
     description:{
         type:String,
