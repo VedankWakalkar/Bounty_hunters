@@ -74,3 +74,64 @@ export const getBountyById = async (req,res,next)=>{
         next(error);
     }
 }
+
+export const updateBountyById = async (req,res,next)=>{
+    try {
+        const compnayId= req.company._id;
+        const bountyId= req.params.id;
+
+        const bounty= await Bounty.findById(bountyId);
+        if(!bounty){
+            const error = new Error ("Bount not found");
+            error.statusCode=404;
+            throw error;
+        }
+
+        if(bounty.company.toString()!==compnayId.toString()){
+            const error = new Error ("Unauthorized Action");
+            error.statusCode=403;
+            throw error;
+        }
+        const updatedBounty = await Bounty.findByIdAndUpdate(bountyId, req.body, { new: true });
+        res
+        .status(201)
+        .json({
+            success:true,
+            message:"Successfully Updated Bounty",
+            data:{
+                bounty:updatedBounty
+            }
+        })
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const deleteBountyById = async (req,res,next)=>{
+    try {
+        const companyId=req.company._id;
+        const bountyId= req.params.id;
+
+        const bounty= await Bounty.findById(bountyId);
+        if(!bounty){
+            const error = new Error ("Bounty not found.")
+            error.statusCode=404;
+            throw error;
+        }
+
+        if(bounty.company.toString()!==companyId.toString()){
+            const error = new Error("Unathorized Access");
+            error.statusCode= 401;
+            throw error;
+        }
+        await Bounty.findByIdAndDelete()
+        res
+        .status(201)
+        .json({
+            success:true,
+            message :"Bounty Deleted Successfully."
+        })
+    } catch (error) {
+        next(error)
+    }
+}
