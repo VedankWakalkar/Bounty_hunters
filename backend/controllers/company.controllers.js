@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken"
 
 import { JWT_EXPIRES_IN, JWT_SECRET } from "../config/env.js";
 import Company from "../models/company.model.js";
+import Submission from "../models/submission.model.js";
 
 export const companySignUp= async(req,res,next)=>{
     const session=mongoose.startSession();
@@ -95,3 +96,64 @@ export const companySignOut= async(req,res,next)=>{
     }
 }
 
+export const getSubmissions= async(req,res,next)=>{
+    try {
+        const companyId= req.company._id;
+
+        const submissions=await Submission.find()
+        .populate({
+            path:"bounty",
+            match:{company:companyId},
+            select:title
+        })
+        .populate(
+            "user",
+            "name email"
+        )
+        const filteredSubmissions = submissions.filter(sub => sub.bounty !== null);
+        res
+        .status(200)
+        .json({
+            success:true,
+            data:{
+                filteredSubmissions
+            }
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const updateSubmission = async (req,res,next)=>{
+    try {
+        const bountyId= req.params;
+        const { status } =req.body;
+        const compnayId = req.compnay._id;
+
+        const submission= await Submission.findById(bountyId).populate("bounty");
+        if(!submission){
+            const error = new Error("Submission not found")
+            error.statusCode=404;
+            throw error;
+        }
+
+        if(submission.compnay.toString()!== compnayId.toString()){
+            const error = new Error ("Unathorized Action");
+            error.statusCode=403;
+            throw error;
+        }
+        submission.status=status;
+        await submission.save();
+        res
+        .status(200)
+        .json({
+            success:true,
+            message:`Submission ${status} successfully`,
+            data:{
+                submission
+            }
+        })
+    } catch (error) {
+        next(error)
+    }
+}
