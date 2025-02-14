@@ -3,17 +3,20 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 
 import User from "../models/user.model.js";
-import { JWT_SECRET } from "../config/env.js";
+import { JWT_SECRET,JWT_EXPIRES_IN } from "../config/env.js";
+
+// Tested the Sign In,OUT,UP endpoints
 
 export const signUp= async(req,res,next)=>{
-    const session = mongoose.startSession();
-    (await session).startTransaction;
+    const session =await mongoose.startSession();
+    
     try{
+        session.startTransaction()
         const {username , email , password }=req.body;
     
         const existingUser = await User.findOne({
             email
-        })
+        }).session(session);
         if(existingUser){
             const error=new Error("User Already Exist");
             error.statusCode=404;
@@ -28,10 +31,10 @@ export const signUp= async(req,res,next)=>{
             password:hashedPassword
         }],{session});
         
-        const token = jwt.sign({ userId: newUsers[0]._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+        const token = jwt.sign({ userId: newUser[0]._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
-        (await session).commitTransaction;
-        (await session).endSession;
+        await session.commitTransaction();
+        await session.endSession();
 
         res
         .status(201)
@@ -44,8 +47,8 @@ export const signUp= async(req,res,next)=>{
             }
         })
     }catch(error){
-        (await session).abortTransaction;
-        (await session).endSession;
+        await session.abortTransaction();
+        await session.endSession();
         next(error)
     }
 }
@@ -86,18 +89,23 @@ export const signIn = async( req, res, next)=>{
 
 export const signOut = async (req, res, next)=>{
     try{
-        const token = req.cookies.authToken;
-        if(!token){
+        const token = req.cookies.authToken || req.headers.authorization?.split(" ")[1];
+
+        if (!token) {
             const error = new Error("Cookie is not provided");
-            throw error
+            error.statusCode = 401;
+            throw error;
         }
+
+        // Clear the cookie properly
         res
-        .clearCookie(authToken)
+        .clearCookie("authToken", { httpOnly: true, secure: true, sameSite: "strict" })
+        .status(200)
         .json({
-            success:true,
-            message:"User Signed Out."
+            success: true,
+            message: "User Signed Out."
         })
     }catch(error){
         next(error)
     }
-}       
+}           
