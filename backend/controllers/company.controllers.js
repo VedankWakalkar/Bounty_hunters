@@ -6,13 +6,17 @@ import { JWT_EXPIRES_IN, JWT_SECRET } from "../config/env.js";
 import Company from "../models/company.model.js";
 import Submission from "../models/submission.model.js";
 
+// Tested the Sign In,OUT,UP endpoints
+
 export const companySignUp= async(req,res,next)=>{
-    const session=mongoose.startSession();
-    (await session).startTransaction;
+    const session=await mongoose.startSession();
+    
     try{
+        session.startTransaction()
         const {name,description,website,email,password}=req.body;
 
-        const existingCompany= await Company.find(email);
+        // const existingCompany= await Company.findOne({email}).session(session);
+        const existingCompany = await Company.findOne({ email }).session(session);
         if(existingCompany){
             const error= new Error("Company Already exist.")
             throw error;
@@ -27,8 +31,8 @@ export const companySignUp= async(req,res,next)=>{
     
         const token = jwt.sign({companyId:newCompany[0]._id},JWT_SECRET,{expiresIn:JWT_EXPIRES_IN});
 
-        (await session).commitTransaction;
-        (await session).endSession;
+        await session.commitTransaction();
+        session.endSession();
 
         res
         .status(200)
@@ -40,8 +44,8 @@ export const companySignUp= async(req,res,next)=>{
             }
         })
     }catch(error){
-        (await session).abortTransaction;
-        (await session).endSession;
+        await session.abortTransaction();
+        session.endSession();
         next(error)
     }
 }
@@ -49,13 +53,13 @@ export const companySignUp= async(req,res,next)=>{
 export const companySignIn= async(req,res,next)=>{  
     try {  
         const {email,password} =req.body;
-        const company= await Company.find(email);
+        const company= await Company.findOne({email});
         if(!company){
             const error= new Error("Company not found.");
             error.statusCode=404;
             throw error;
         }
-        const isPasswordValid= await bcrypt.compare(company.password,password);
+        const isPasswordValid= await bcrypt.compare(password,company.password);
         if(!isPasswordValid){
             const error =new Error("Password is invalid");
             error.statusCode=401;
@@ -80,15 +84,15 @@ export const companySignIn= async(req,res,next)=>{
 
 export const companySignOut= async(req,res,next)=>{
     try{
-        const token = req.cookies.authToken;
+        const token = req.cookies.authToken|| req.headers.authorization.split(" ")[1];
         if(!token){
             const error = new Error("Cookie is not provided");
             throw error
         }
         res
-        .clearCookie(authToken)
+        .clearCookie("authToken",{ httpOnly: true, secure: true, sameSite: "strict" })
         .json({
-            success:true,
+            success:true,   
             message:"Company Signed Out."
         })
     }catch(error){
