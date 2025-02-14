@@ -1,7 +1,15 @@
+import mongoose from "mongoose";
 import Bounty from "../models/bounty.model.js";
+import Company from "../models/company.model.js";
 
+
+// done tested createBounty Endpoint 
 export const createBounty= async (req,res,next)=>{
+    
+    const session = await mongoose.startSession();
+
     try {
+        session.startTransaction();
         const {title,description,skillsRequired,rewardAmount,rewardType,deadline} =req.body;
 
         if (!title || !description || !skillsRequired?.length || !rewardAmount || !deadline) {
@@ -9,16 +17,29 @@ export const createBounty= async (req,res,next)=>{
             error.statusCode = 400;
             throw error;
         }
-
-        const newBounty= await Bounty.create({
+        if (!req.company || !req.company._id) {
+            throw new Error("Company ID is missing in request.");
+        }
+        const companyId= req.company._id;
+        console.log("companyId: ",companyId)
+        const newBounty = await Bounty.create([{
             title,
             description,
             skillsRequired,
             rewardAmount,
             rewardType, // Optional, defaults to "Cash" if not provided
             deadline,
-            compnay:req.company._id
-        })
+            company: companyId
+        }], { session });
+
+        // Update the company's postedBounties array
+        await Company.findByIdAndUpdate(
+            companyId,
+            { $push: { postedBounty: newBounty[0]._id } }, // ✅ Push new bounty ID
+            { session, new: true }
+        );
+        await session.commitTransaction();
+        session.endSession()
 
         res
         .status(201)
@@ -30,6 +51,8 @@ export const createBounty= async (req,res,next)=>{
             }
         })
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         next(error);
     }
 }
