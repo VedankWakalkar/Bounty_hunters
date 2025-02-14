@@ -6,18 +6,21 @@ import { createBounty, deleteBountyById, getAllBounties, getBountyById, updateBo
 
 const companyRouter=Router();
 
+// tested 
 companyRouter.post('/sign-up',companySignUp);
 companyRouter.post('/sign-in',companySignIn);
 companyRouter.post('/sign-out',companySignOut);
 
 // protected route
-
+// tested 
 companyRouter.post("/bounties",authorizeCompany,createBounty);
 companyRouter.get("/bounties",authorizeCompany,getAllBounties);
 companyRouter.get("/bounties/:id",authorizeCompany,getBountyById);
 companyRouter.put("/bounties/:id",authorizeCompany,updateBountyById);
 companyRouter.delete("/bounties/:id",authorizeCompany,deleteBountyById);
 companyRouter.get("/submissions",authorizeCompany,getSubmissions);
+
+// yet to be test
 companyRouter.patch("/submissions/:id",authorizeCompany,updateSubmission)
 
 export default companyRouter;

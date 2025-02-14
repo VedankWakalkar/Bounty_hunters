@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Bounty from "../models/bounty.model.js";
 import Submission from "../models/submission.model.js";
 import User from "../models/user.model.js";
@@ -41,7 +42,9 @@ export const getUser=async(req,res,next)=>{
 }
 
 export const createSubmission =async (req,res,next)=>{
+    const session = await mongoose.startSession()
     try {
+        session.startTransaction();
         const { bounty , reportDetails , proof }= req.body;
         const userId = req.user._id;
 
@@ -51,12 +54,22 @@ export const createSubmission =async (req,res,next)=>{
             error.statusCode=404
             throw error
         }
-        const newSubmission= await Submission.create({
+
+        const newSubmission= await Submission.create([{
             bounty,
             user:userId,
             reportDetails,
             proof
-        })
+        }],{session});
+
+        await Bounty.findByIdAndUpdate(
+            bounty,
+            {$push:{submission:newSubmission[0]._id}},
+            {session,new:true}
+        )
+        await session.commitTransaction();
+        session.endSession()
+
         res
         .status(200)
         .json({
@@ -66,8 +79,9 @@ export const createSubmission =async (req,res,next)=>{
                 Submission:newSubmission
             }
         })
-
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         next(error)
     }
 }

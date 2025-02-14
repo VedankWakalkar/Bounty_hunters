@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken"
 import { JWT_EXPIRES_IN, JWT_SECRET } from "../config/env.js";
 import Company from "../models/company.model.js";
 import Submission from "../models/submission.model.js";
+import Bounty from "../models/bounty.model.js";
 
 // Tested the Sign In,OUT,UP endpoints
 
@@ -102,27 +103,41 @@ export const companySignOut= async(req,res,next)=>{
 
 export const getSubmissions= async(req,res,next)=>{
     try {
-        const companyId= req.company._id;
+        const companyId = req.company._id;
+        
+        const existingCompany= await Company.findById(companyId);
+        console.log("Company Details: ",existingCompany);
+        if(!existingCompany){
+            const error = new Error ("Company not found");
+            error.statusCode=404;
+            throw error;
+        }
 
-        const submissions=await Submission.find()
-        .populate({
-            path:"bounty",
-            match:{company:companyId},
-            select:title
-        })
-        .populate(
-            "user",
-            "name email"
-        )
-        const filteredSubmissions = submissions.filter(sub => sub.bounty !== null);
+        const bounties = await Bounty.find({company:companyId});
+        // submission is an array
+        console.log("bounty details: ",bounties)
+        const submissionIds= bounties.flatMap(bounty=>bounty.submission)
+        console.log("submissionsIds Details: ",submissionIds)
+        if(submissionIds.length===0){
+            return res.status(200).json({
+                success:true,
+                message:"No submissions found",
+                data:{
+                    submission:[]
+                }
+            })
+        }
+
+        const getSubmissions = await Submission.find({ _id: { $in: submissionIds } });
         res
         .status(200)
         .json({
             success:true,
             data:{
-                filteredSubmissions
+                Submission:getSubmissions
             }
         })
+
     } catch (error) {
         next(error)
     }
@@ -132,16 +147,16 @@ export const updateSubmission = async (req,res,next)=>{
     try {
         const bountyId= req.params;
         const { status } =req.body;
-        const compnayId = req.compnay._id;
+        const companyId = req.company._id;
 
-        const submission= await Submission.findById(bountyId).populate("bounty");
+        const submission= await Submission.findById(bountyId);
         if(!submission){
             const error = new Error("Submission not found")
             error.statusCode=404;
-            throw error;
+            throw error;    
         }
 
-        if(submission.compnay.toString()!== compnayId.toString()){
+        if(submission.company.toString()!== companyId.toString()){
             const error = new Error ("Unathorized Action");
             error.statusCode=403;
             throw error;
