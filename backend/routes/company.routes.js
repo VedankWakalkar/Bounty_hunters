@@ -1,7 +1,7 @@
 import { companySignIn, companySignOut, companySignUp, getSubmissions, updateSubmission } from "../controllers/company.controllers.js";
 import express from "express";
 import { Router } from "express";
-import authorizeCompany from "../middlewares/compnay.middlewares.js";
+import authorizeCompany from "../middlewares/company.middlewares.js";
 import { createBounty, deleteBountyById, getAllBounties, getBountyById, updateBountyById } from "../controllers/bounty.controllers.js";
 
 const companyRouter=Router();
