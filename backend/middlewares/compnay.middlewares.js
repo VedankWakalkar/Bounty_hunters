@@ -4,11 +4,15 @@ import Company from "../models/company.model.js";
 
 const authorizeCompany = async (req,res,next)=>{
     try {
-        let token;
-        if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
-            token = req.headers.authorization.split(" ")[1];
-        }
-
+        console.log("Inside Company Middlewre!")
+        console.log("Request Headers:", req.headers);
+        console.log("Authorization Header:", req.headers.authorization);
+        // let token;
+        // if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
+        //     token = req.headers.authorization.split(" ")[1];
+        // }
+        const token = req.headers.authorization.split(" ")[1];
+        console.log("Token in middleware: ",token)
         if(!token){
             const error = new Error("Unauthorized, Please Provide Valid Token")
             error.statusCode=403;
